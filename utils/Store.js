@@ -1,9 +1,12 @@
 import { createContext, useReducer } from "react";
+import Cookies from "js-cookie";
 
 export const Store = createContext();
 
 const initialState = {
-    cart: { cartItems: [] },
+    cart: Cookies.get('cart')
+        ? JSON.parse(Cookies.get('cart'))
+        : { cartItems: [] },
 };
 
 function reducer(state, action) {
@@ -11,10 +14,11 @@ function reducer(state, action) {
         case 'CART_ADD_ITEM': {
             const newItem = action.payload; // get the new item
             const existItem = state.cart.cartItems.find((item) => item.slug === newItem.slug); // check if the item exists already
-            const cartItems = existItem ?
-                state.cart.cartItems.map((item) => item.name === existItem.name ? newItem : item)
-                :
-                [...state.cart.cartItems, newItem];
+            const cartItems = existItem
+                ? state.cart.cartItems.map((item) => item.name === existItem.name ? newItem : item)
+                : [...state.cart.cartItems, newItem];
+
+            Cookies.set('cart', JSON.stringify({ ...state.cart, cartItems }));
 
             return { ...state, cart: { ...state.cart, cartItems } }
         }
@@ -22,6 +26,8 @@ function reducer(state, action) {
             const cartItems = state.cart.cartItems.filter(
                 (item) => item.slug !== action.payload.slug
             ); // remove item from cart
+
+            Cookies.set('cart', JSON.stringify({ ...state.cart, cartItems }));
 
             return { ...state, cart: { ...state.cart, cartItems } };
         }
