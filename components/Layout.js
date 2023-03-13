@@ -1,17 +1,32 @@
 import { Store } from '@/utils/Store';
+import { signOut, useSession } from 'next-auth/react';
 import Head from 'next/head'
 import Link from 'next/link'
 import React, { useContext, useEffect, useState } from 'react'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Menu } from '@headlessui/react'
+import DropdownLink from './DropdownLink';
+import Cookies from 'js-cookie';
 
 export default function Layout({ children, title }) {
 
-    const { state } = useContext(Store);
+    const { status, data: session } = useSession();
+
+    const { state, dispatch } = useContext(Store);
     const { cart } = state;
     const [cartItemsCount, setcartItemsCount] = useState(0);
 
     useEffect(() => {
         setcartItemsCount(cart.cartItems.reduce((a, c) => a + c.quantity, 0))
     }, [cart.cartItems])
+
+    const logoutClickHandler = () => {
+
+        Cookies.remove('cart');
+        dispatch({ type: 'CART_RESET'});
+        signOut({ callbackUrl: '/login' });
+    };
 
     return (
         <>
@@ -21,6 +36,8 @@ export default function Layout({ children, title }) {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
             </Head>
+
+            <ToastContainer position='bottom-center' limit={1} />
 
             <div className='flex min-h-screen flex-col justify-between'>
                 <header>
@@ -41,9 +58,38 @@ export default function Layout({ children, title }) {
                                 </a>
                             </Link>
                             <Link href="/login" legacyBehavior>
-                                <a className='p-2'>
-                                    Login
-                                </a>
+                                {
+                                    status === 'loading'
+                                        ? 'Loading'
+                                        : (session?.user
+                                            ? (
+                                                <Menu as="div" className="relative inline-block">
+                                                    <Menu.Button className="text-blue-600">
+                                                        {session.user.name}
+                                                    </Menu.Button>
+                                                    <Menu.Items className="absolute bg-white right-0 w-56 origin-top-right shadow-lg">
+                                                        <Menu.Item>
+                                                            <DropdownLink className="dropdown-link" href="/profile" alt="profile">
+                                                                Profile
+                                                            </DropdownLink>
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                            <DropdownLink className="dropdown-link" href="/order-history" alt="order-history">
+                                                                Order History
+                                                            </DropdownLink>
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                            <a className='dropdown-link' href='#' onClick={logoutClickHandler}>
+                                                                Logout
+                                                            </a>
+                                                        </Menu.Item>
+                                                    </Menu.Items>
+                                                </Menu>
+                                            )
+                                            : (
+                                                <a className="p-2">Login</a>
+                                            ))
+                                }
                             </Link>
                         </div>
                     </nav>
